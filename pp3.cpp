@@ -8,7 +8,7 @@
 
 using uint = unsigned int;
 using Vertex = unsigned int;
-using Weight = float;
+using Weight = unsigned int;
 using VertexWeightPair = std::pair<Vertex, Weight>;
 
 class WeightedGraphAL 
@@ -118,7 +118,7 @@ private:
                         int ascii_initial_row = 'a' + initial_row; //codigo ascii começando por "a" -> 97
                         int ascii_new_row = 'a' + new_row;
 
-                        Weight w_edge = (ascii_initial_row*initial_line + ascii_new_row*new_line) % 19; //formula para determinar o peso
+                        Weight w_edge = (ascii_initial_row*(initial_line+1) + ascii_new_row*(new_line+1)) % 19; //formula para determinar o peso
 
                         if (initial_vertice < new_vertice) 
                         {
@@ -135,7 +135,7 @@ private:
         int initial_row = position[0] - 'a';
         int initial_line = position[1] - '1';
 
-        return initial_line * 8 + initial_row;
+        return initial_line * N + initial_row;
     }
 
 public:
