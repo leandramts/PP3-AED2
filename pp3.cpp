@@ -35,16 +35,16 @@ class WeightedGraphAL
     {
         if (u < 0 || v < 0 || u > num_vertices || v > num_vertices || u == v)
         throw std::invalid_argument("Vertices invalidos");
+        
+            auto pair1 = std::make_pair(v,w);
+            
+            adj[u].push_back(pair1);
 
-        auto pair1 = std::make_pair(v,w);
+            auto pair2 = std::make_pair(u,w);
 
-        adj[u].push_back(pair1);
+            adj[v].push_back(pair2);
 
-        auto pair2 = std::make_pair(u,w);
-
-        adj[v].push_back(pair2);
-
-        num_edges++;
+            num_edges++;
 
     }
 
@@ -115,8 +115,8 @@ private:
                     if (new_line >= 0 && new_line < N && new_row >= 0 && new_row < N) 
                     {
                         Vertex new_vertice = new_line * N + new_row;
-                        int ascii_initial_row = 97 + initial_row; //codigo ascii começando por 97 -> "a"
-                        int ascii_new_row = 97 + new_row;
+                        int ascii_initial_row = 'a' + initial_row; //codigo ascii começando por "a" -> 97
+                        int ascii_new_row = 'a' + new_row;
 
                         Weight w_edge = (ascii_initial_row*initial_line + ascii_new_row*new_line) % 19; //formula para determinar o peso
 
