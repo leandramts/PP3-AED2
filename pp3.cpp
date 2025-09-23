@@ -89,10 +89,10 @@ class WeightedGraphAL
 
 //tirar duvida de começar em 1 conforme os slides ou 0 conforme std::vector
 //esta comecando pelo indice 0 atualmente
-class MinHeap
+class MinimumPriorityQueue
 {
     private:
-        std::vector<Weight> heap;
+        std::vector<Weight> MinHeap;
 
         int parent(int i) 
         {
@@ -110,11 +110,11 @@ class MinHeap
         }
     
     public:
-        MinHeap() {}
+        MinimumPriorityQueue() {}
     
     std::vector<Weight> getHeap()
     {
-        return heap;
+        return MinHeap;
     }
 
 
@@ -122,36 +122,32 @@ class MinHeap
     {
         int l = left(i);
         int r = right(i);
-        int smallest;
+        int smallest = i; 
 
-        int tam = heap.size();
+        int tam = MinHeap.size();
 
-        if (l < tam && heap[l] < heap[i])
-            smallest = l;
-        else
-        {
-            smallest = i;
-        }
+        if (l < tam && MinHeap[l] < MinHeap[i]) //define se o menor é o original, esquerda ou direita
+            smallest = l; 
 
-        if (r < tam && heap[r] < heap[smallest])
+        if (r < tam && MinHeap[r] < MinHeap[smallest]) 
         {
             smallest = r;
         }
 
-        if (smallest!=i)
+        if (smallest!=i) //se o menor for esquerda ou direita, troca de lugar e recursivamente repete o processo
         {
             Weight aux;
-            aux = heap[i];
-            heap[i] = heap[smallest];
-            heap[smallest] = aux;
+            aux = MinHeap[i];
+            MinHeap[i] = MinHeap[smallest];
+            MinHeap[smallest] = aux;
             min_heapify(smallest);
         }
     }
 
-    void build_min_heap()
+    void build_min_heap() //constroi a heap binaria minima 
     {
-        int tam = heap.size();
-        for (int i = tam/2-1; i>=0; i--)
+        int tam = MinHeap.size();
+        for (int i = tam/2-1; i>=0; i--) //repete o processo de encontrar o menor ate a raiz
         {
             min_heapify(i);
         }
@@ -159,30 +155,32 @@ class MinHeap
 
     void insert(Weight key)
     {
-        heap.push_back(key);
-        int i = heap.size() - 1;
+        MinHeap.push_back(key); //insere chaves na heap
+        int i = MinHeap.size() - 1;
 
-        while (i>0 and heap[i]< heap[parent(i)])
+        while (i>0 && MinHeap[i]< MinHeap[parent(i)]) //enquanto a chave nao for a raiz e for menor que a pai, eles mudam de lugar
         {
-            Weight aux = heap[i];
-            heap[i] = heap[parent(i)];
-            heap[parent(i)] = aux;
+            Weight aux = MinHeap[i];
+            MinHeap[i] = MinHeap[parent(i)];
+            MinHeap[parent(i)] = aux;
             i = parent(i);
 
         }
     }
 
-    Weight extract_min()
+    Weight extract_min() //remove o elemento de menor chave
     {
-        if (heap.size() == 0)
+        if (MinHeap.size() == 0)
         {
             throw std::runtime_error("Fila vazia");
         }
 
-        Weight min = heap[0];
-        heap[0] = heap.back();
-        heap.pop_back();
-        min_heapify(0);
+        Weight min = MinHeap[0];
+        MinHeap[0] = MinHeap.back();
+        MinHeap.pop_back(); //vai pro fim da fila pra ser removido
+        
+        if (!MinHeap.empty()) // só heapify se ainda tem elementos
+            min_heapify(0);
 
         return min;
     }
@@ -265,47 +263,49 @@ public:
 
 
 
-// int main() {
-//     MinHeap heap;
+int main() {
+    MinimumPriorityQueue mpq;
 
-//     // Teste 1: Inserções
-//     std::cout << "Inserindo elementos:\n";
-//     heap.insert(5);
-//     heap.insert(3);
-//     heap.insert(8);
-//     heap.insert(1);
-//     heap.insert(6);
-//     heap.insert(10);
-//     heap.insert(0);
-//     heap.insert(11);
-//     heap.insert(7);
+    // Teste 1: Inserções
+    std::cout << "Inserindo elementos:\n";
+    mpq.insert(5);
+    mpq.insert(3);
+    mpq.insert(8);
+    mpq.insert(1);
+    mpq.insert(6);
+    mpq.insert(10);
+    mpq.insert(0);
+    mpq.insert(11);
+    mpq.insert(7);
+    mpq.insert(8);
+    mpq.insert(0);
+    mpq.insert(19);
 
-//     // Mostrar conteúdo interno do heap
-//     std::cout << "Heap interno apos insercoes: ";
-//     // (precisa de um método para mostrar, por exemplo getHeap())
-//     for (auto x : heap.getHeap()) {
-//         std::cout << x << " ";
-//     }
-//     std::cout << "\n";
+    // Mostrar conteúdo interno do heap
+    std::cout << "Heap interno apos insercoes: ";
+    for (auto x : mpq.getHeap()) {
+        std::cout << x << " ";
+    }
+    std::cout << "\n";
 
-//     // Teste 2: Extração do mínimo
-//     std::cout << "Extraindo min: " << heap.extract_min() << "\n";
-//     std::cout << "Heap apos extract_min: ";
-//     for (auto x : heap.getHeap()) {
-//         std::cout << x << " ";
-//     }
-//     std::cout << "\n";
+    // Teste 2: Extração do mínimo
+    std::cout << "Extraindo min: " << mpq.extract_min() << "\n";
+    std::cout << "Heap apos extract_min: ";
+    for (auto x : mpq.getHeap()) {
+        std::cout << x << " ";
+    }
+    std::cout << "\n";
 
-//     // Teste 3: Várias extrações até esvaziar
-//     std::cout << "Extraindo todos:\n";
-//     while (true) {
-//         try {
-//             std::cout << heap.extract_min() << " ";
-//         } catch (std::runtime_error& e) {
-//             std::cout << "\n[Fila vazia]\n";
-//             break;
-//         }
-//     }
+    // Teste 3: Várias extrações até esvaziar
+    std::cout << "Extraindo todos:\n";
+    while (true) {
+        try {
+            std::cout << mpq.extract_min() << " ";
+        } catch (std::runtime_error& e) {
+            std::cout << "\n[Fila vazia]\n";
+            break;
+        }
+    }
 
-//     return 0;
-// }
+    return 0;
+}
