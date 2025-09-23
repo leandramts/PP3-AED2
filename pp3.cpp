@@ -87,6 +87,108 @@ class WeightedGraphAL
     }
 };
 
+//tirar duvida de começar em 1 conforme os slides ou 0 conforme std::vector
+//esta comecando pelo indice 0 atualmente
+class MinHeap
+{
+    private:
+        std::vector<Weight> heap;
+
+        int parent(int i) 
+        {
+            return (i-1)/2;
+        }
+
+        int left(int i)
+        {
+            return 2*i+1;
+        }
+
+        int right(int i)
+        {
+            return 2*i + 2;
+        }
+    
+    public:
+        MinHeap() {}
+    
+    std::vector<Weight> getHeap()
+    {
+        return heap;
+    }
+
+
+    void min_heapify(int i)
+    {
+        int l = left(i);
+        int r = right(i);
+        int smallest;
+
+        int tam = heap.size();
+
+        if (l < tam && heap[l] < heap[i])
+            smallest = l;
+        else
+        {
+            smallest = i;
+        }
+
+        if (r < tam && heap[r] < heap[smallest])
+        {
+            smallest = r;
+        }
+
+        if (smallest!=i)
+        {
+            Weight aux;
+            aux = heap[i];
+            heap[i] = heap[smallest];
+            heap[smallest] = aux;
+            min_heapify(smallest);
+        }
+    }
+
+    void build_min_heap()
+    {
+        int tam = heap.size();
+        for (int i = tam/2-1; i>=0; i--)
+        {
+            min_heapify(i);
+        }
+    }
+
+    void insert(Weight key)
+    {
+        heap.push_back(key);
+        int i = heap.size() - 1;
+
+        while (i>0 and heap[i]< heap[parent(i)])
+        {
+            Weight aux = heap[i];
+            heap[i] = heap[parent(i)];
+            heap[parent(i)] = aux;
+            i = parent(i);
+
+        }
+    }
+
+    Weight extract_min()
+    {
+        if (heap.size() == 0)
+        {
+            throw std::runtime_error("Fila vazia");
+        }
+
+        Weight min = heap[0];
+        heap[0] = heap.back();
+        heap.pop_back();
+        min_heapify(0);
+
+        return min;
+    }
+};
+
+
 class ArmiesAttack
 {
 private:
@@ -151,12 +253,59 @@ public:
 
 };
 
-int main()
-{
-    int N;
-    std:: cin >> N;
-    ArmiesAttack at(N);
-    at.print_graph();
+// int main()
+// {
+//     int N;
+//     std:: cin >> N;
+//     ArmiesAttack at(N);
+//     //at.print_graph();
     
-    return 0;
-}
+//     return 0;
+// }
+
+
+
+// int main() {
+//     MinHeap heap;
+
+//     // Teste 1: Inserções
+//     std::cout << "Inserindo elementos:\n";
+//     heap.insert(5);
+//     heap.insert(3);
+//     heap.insert(8);
+//     heap.insert(1);
+//     heap.insert(6);
+//     heap.insert(10);
+//     heap.insert(0);
+//     heap.insert(11);
+//     heap.insert(7);
+
+//     // Mostrar conteúdo interno do heap
+//     std::cout << "Heap interno apos insercoes: ";
+//     // (precisa de um método para mostrar, por exemplo getHeap())
+//     for (auto x : heap.getHeap()) {
+//         std::cout << x << " ";
+//     }
+//     std::cout << "\n";
+
+//     // Teste 2: Extração do mínimo
+//     std::cout << "Extraindo min: " << heap.extract_min() << "\n";
+//     std::cout << "Heap apos extract_min: ";
+//     for (auto x : heap.getHeap()) {
+//         std::cout << x << " ";
+//     }
+//     std::cout << "\n";
+
+//     // Teste 3: Várias extrações até esvaziar
+//     std::cout << "Extraindo todos:\n";
+//     while (true) {
+//         try {
+//             std::cout << heap.extract_min() << " ";
+//         } catch (std::runtime_error& e) {
+//             std::cout << "\n[Fila vazia]\n";
+//             break;
+//         }
+//     }
+
+//     return 0;
+// }
