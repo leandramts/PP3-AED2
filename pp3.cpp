@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <limits>
 #include <utility>
+#include <string>
 
 using uint = unsigned int;
 using Vertex = unsigned int;
@@ -93,6 +94,12 @@ private:
     WeightedGraphAL g;
     int N;
 
+    struct Army
+    {
+        std::string cor;
+        std::string posicao;
+        std::vector<std::string> inimigos;
+    };
 
     void armies_paths(WeightedGraphAL& g, int N)
     { 
@@ -144,6 +151,18 @@ public:
         armies_paths(g, N);
     }
 
+    void add_army(const std::string& color, const std::string& position, const std::vector<std::string>& enemies)
+    {
+        Army a;
+        a.cor = color;
+        a.posicao = position;
+        a.inimigos = enemies;
+
+        Vertex v = position_to_vertice(position);
+
+        // falta adicionar a logica de introducao do exercito no grafo
+    }
+
     void print_graph() const
     {
         g.print_adjacency_list(g);
@@ -151,12 +170,73 @@ public:
 
 };
 
+std::string get_next_token(const std::string& str, int& pos) {
+    while (pos < str.length() && str[pos] == ' ') {
+        pos++;
+    }
+
+    int start = pos;
+    while (pos < str.length() && str[pos] != ' ') {
+        pos++;
+    }
+
+    if (start < str.length()) {
+        return str.substr(start, pos - start); // Retorna a sub-string que é a palavra
+    }
+    return ""; // Retorna string vazia se não houver mais palavras
+}
+
 int main()
 {
     int N;
     std:: cin >> N;
     ArmiesAttack at(N);
     at.print_graph();
+    
+    int num_royal_armies;
+    std::cin >> num_royal_armies;
+    std::cin.ignore();
+
+    for (int i = 0; i < num_royal_armies; ++i)
+    {
+        std::string line;
+        std::getline(std::cin, line);
+        int pos = 0;
+
+        std::string color = get_next_token(line, pos);
+        std::string position = get_next_token(line, pos);
+
+        std::vector<std::string> enemies;
+        std::string enemy;
+        while ((enemy = get_next_token(line, pos)) != "")
+        {
+            enemies.push_back(enemy);
+        }
+        
+        at.add_army(color, position, enemies);
+
+        std::cout << "Inimigos:";
+        for (auto &e : enemies)
+        {
+            std::cout << " " << e;
+        }
+        std::cout << "\n";
+        
+    }
+
+    // std::string castle_position;
+    // std::cin >> castle_position;
+
+    // int num_tormentas;
+    // std::cin >> num_tormentas;
+
+    // std::vector<std::string> tormenta_positions;
+    // for (int i = 0; i < num_tormentas; ++i)
+    // {
+    //     std::string tormenta_pos;
+    //     std::cin >> tormenta_pos;
+    //     tormenta_positions.push_back(tormenta_pos);
+    // }
     
     return 0;
 }
