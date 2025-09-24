@@ -116,7 +116,7 @@ class MinimumPriorityQueue
 
             int tam = MinHeap.size();
 
-            if (l < tam && MinHeap[l].first < MinHeap[i].first) //define se o menor é o original, esquerda ou direita
+            if (l < tam && MinHeap[l].first < MinHeap[i].first) //define qual o menor: o original, esquerda ou direita
                 smallest = l; 
 
             if (r < tam && MinHeap[r].first < MinHeap[smallest].first) 
@@ -190,12 +190,12 @@ class MinimumPriorityQueue
 class AlgorithmDijkstra
 {
     private:
-        WeightedGraphAL g;
+        const WeightedGraphAL& g;
         std::vector<uint> dist;
         std::vector<int> pred;
     
     public:
-         AlgorithmDijkstra(WeightedGraphAL& graph) : 
+         AlgorithmDijkstra(const WeightedGraphAL& graph) : 
          g(graph) 
 
         {
@@ -298,6 +298,8 @@ private:
         std::vector<std::string> inimigos;
     };
 
+    std::vector<Army> armies_list;
+
     void armies_paths(WeightedGraphAL& g, int N)
     { 
     int L_moves[8][2] =
@@ -319,7 +321,7 @@ private:
                     if (new_line >= 0 && new_line < N && new_row >= 0 && new_row < N) 
                     {
                         Vertex new_vertice = new_line * N + new_row;
-                        int ascii_initial_row = 'a' + initial_row; //codigo ascii começando por "a" -> 97
+                        int ascii_initial_row = 'a' + initial_row; //codigo ascii comecando por "a" -> 97
                         int ascii_new_row = 'a' + new_row;
 
                         Weight w_edge = (ascii_initial_row*(initial_line+1) + ascii_new_row*(new_line+1)) % 19; //formula para determinar o peso
@@ -347,10 +349,30 @@ public:
         a.cor = color;
         a.posicao = position;
         a.inimigos = enemies;
+        armies_list.push_back(a);
 
-        Vertex v = position_to_vertice(position);
+    }
 
-        // falta adicionar a logica de introducao do exercito no grafo
+    const std::vector<Army>& get_armies() const
+    {
+        return armies_list;
+    }
+
+    uint army_distance_to_castle(std::string army_position, std::string castle_position)
+    {
+        Vertex a = position_to_vertice(army_position);
+        Vertex c = position_to_vertice(castle_position);
+        AlgorithmDijkstra ad(g);
+        ad.Dijkstra(a); //aplica o algoritmo de Dijkstra com o vertice do exercito sendo a origem
+        const auto& array_dist = ad.getDistances(); //pega os vetores das distancias minimas
+        uint min_dist = array_dist[c];
+
+        if (min_dist == std::numeric_limits<uint>::max())
+        {
+            throw std::runtime_error("Nao tem caminho ate castelo");
+        }
+
+        return min_dist; //retorna a distancia minima segundo o algoritmo ate o castelo
     }
   
     void print_graph() const //funcao pra teste de depuracao 
@@ -358,7 +380,7 @@ public:
         g.print_adjacency_list(g);
     }
 
-    WeightedGraphAL getGraph() const //funcao pra teste de depuracao 
+    const WeightedGraphAL& getGraph() const //funcao pra teste de depuracao 
     {
         return g;
     }
@@ -366,7 +388,7 @@ public:
      Vertex position_to_vertice(std::string position)
     {
         int initial_row = position[0] - 'a';
-        int initial_line = position[1] - '1';
+        int initial_line = std::stoi(position.substr(1)) - 1; // insere tudo depois da primeira letra ()
 
         return initial_line * N + initial_row;
     }
@@ -384,9 +406,9 @@ std::string get_next_token(const std::string& str, int& pos) {
     }
 
     if (start < str.length()) {
-        return str.substr(start, pos - start); // Retorna a sub-string que é a palavra
+        return str.substr(start, pos - start); // Retorna a sub-string que eh a palavra
     }
-    return ""; // Retorna string vazia se não houver mais palavras
+    return ""; // Retorna string vazia se nao houver mais palavras
 }
 
 int main()
@@ -394,7 +416,7 @@ int main()
     int N;
     std:: cin >> N;
     ArmiesAttack at(N);
-    at.print_graph();
+   // at.print_graph();
     
     int num_royal_armies;
     std::cin >> num_royal_armies;
@@ -441,42 +463,26 @@ int main()
         tormenta_positions.push_back(tormenta_pos);
     }
     
-    // ======= 
-    // >>>>>>> dijkstraImplemention
+    //testes de depuracao 
+    const auto& all_armies = at.get_armies();
 
-    //testes do AlgorithmDijkstra (aparentemente coerente com os testes)
 
-    // int N;
-    // std::cout << "Digite o tamanho do tabuleiro NxN (8 a 15): ";
-    // std::cin >> N;
+    for (const auto& army : all_armies) 
+    {
+        try
+        {
 
-    // ArmiesAttack battle(N);
-    // WeightedGraphAL g_battle = battle.getGraph();
+            uint distance = at.army_distance_to_castle(army.posicao, castle_position);
+            std::cout << "Exercito " << army.cor << " (" << army.posicao << "): "
+                      << "Distancia minima = " << distance << std::endl;
+        }
+        catch (const std::runtime_error& e)
+        {
+            std::cout << "Exercito " << army.cor << " (" << army.posicao << "): "
+                      << "INACESSIVEL" << std::endl;
+        }
+    }
 
-    // std::string army_color, army_pos;
-    // std::cout << "Digite a cor do exército: ";
-    // std::cin >> army_color;
-    // std::cout << "Digite a posição inicial do exército (ex: b8): ";
-    // std::cin >> army_pos;
 
-    // Vertex start = battle.position_to_vertice(army_pos);
 
-    // std::string castle_pos;
-    // std::cout << "Digite a posição do castelo de Hunnus: ";
-    // std::cin >> castle_pos;
-    // Vertex castle = battle.position_to_vertice(castle_pos);
-
-    // Algorithm_Dijkstra dijkstra(g_battle);
-    // dijkstra.Dijkstra(start);
-
-    // const auto& dist = dijkstra.getDistances(); // precisa do getter em Algorithm_Dijkstra
-
-    // std::cout << "\nExército " << army_color 
-    //           << " até o castelo " << castle_pos << ": ";
-
-    // if (dist[castle] == std::numeric_limits<uint>::max())
-    //     std::cout << "INACESSÍVEL\n";
-    // else
-    //     std::cout << "distância mínima = " << dist[castle] << "\n";
-    return 0;
 }
