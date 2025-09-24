@@ -4,7 +4,7 @@
 #include <vector>
 #include <stdexcept>
 #include <limits>
-#include <utility>
+#include <utility> 
 
 using uint = unsigned int;
 using Vertex = unsigned int;
@@ -48,7 +48,7 @@ class WeightedGraphAL
 
     }
 
-    std::list <VertexWeightPair> get_adj(const Vertex& u) const
+    const std::list <VertexWeightPair> get_adj(const Vertex& u) const
     {
         if ( u < 0 || u > num_vertices)
         throw std:: invalid_argument("Vertice invalido");
@@ -87,12 +87,10 @@ class WeightedGraphAL
     }
 };
 
-//tirar duvida de começar em 1 conforme os slides ou 0 conforme std::vector
-//esta comecando pelo indice 0 atualmente
 class MinimumPriorityQueue
 {
     private:
-        std::vector<Weight> MinHeap;
+        std::vector<std::pair<Weight, Vertex>> MinHeap;
 
         int parent(int i) 
         {
@@ -108,41 +106,42 @@ class MinimumPriorityQueue
         {
             return 2*i + 2;
         }
+
+        void min_heapify(int i)
+        {
+            int l = left(i);
+            int r = right(i);
+            int smallest = i; 
+
+            int tam = MinHeap.size();
+
+            if (l < tam && MinHeap[l].first < MinHeap[i].first) //define se o menor é o original, esquerda ou direita
+                smallest = l; 
+
+            if (r < tam && MinHeap[r].first < MinHeap[smallest].first) 
+            {
+                smallest = r;
+            }
+
+            if (smallest!=i) //se o menor for esquerda ou direita, troca de lugar e recursivamente repete o processo
+            {
+                std::pair<Weight, Vertex> aux = MinHeap[i];
+                MinHeap[i] = MinHeap[smallest];
+                MinHeap[smallest] = aux;
+                min_heapify(smallest);
+            }
+        }
     
     public:
         MinimumPriorityQueue() {}
-    
-    std::vector<Weight> getHeap()
+   
+    bool empty()
     {
-        return MinHeap;
+        return MinHeap.empty();
     }
 
+    std::vector<std::pair<Weight, Vertex>> getHeap() { return MinHeap; }
 
-    void min_heapify(int i)
-    {
-        int l = left(i);
-        int r = right(i);
-        int smallest = i; 
-
-        int tam = MinHeap.size();
-
-        if (l < tam && MinHeap[l] < MinHeap[i]) //define se o menor é o original, esquerda ou direita
-            smallest = l; 
-
-        if (r < tam && MinHeap[r] < MinHeap[smallest]) 
-        {
-            smallest = r;
-        }
-
-        if (smallest!=i) //se o menor for esquerda ou direita, troca de lugar e recursivamente repete o processo
-        {
-            Weight aux;
-            aux = MinHeap[i];
-            MinHeap[i] = MinHeap[smallest];
-            MinHeap[smallest] = aux;
-            min_heapify(smallest);
-        }
-    }
 
     void build_min_heap() //constroi a heap binaria minima 
     {
@@ -153,37 +152,135 @@ class MinimumPriorityQueue
         }
     }
 
-    void insert(Weight key)
+    void insert(std::pair<Weight, Vertex> key)
     {
         MinHeap.push_back(key); //insere chaves na heap
         int i = MinHeap.size() - 1;
 
-        while (i>0 && MinHeap[i]< MinHeap[parent(i)]) //enquanto a chave nao for a raiz e for menor que a pai, eles mudam de lugar
+        while (i>0 && MinHeap[i].first< MinHeap[parent(i)].first) //enquanto a chave nao for a raiz e for menor que a pai, eles mudam de lugar
         {
-            Weight aux = MinHeap[i];
+            std::pair<Weight, Vertex> aux = MinHeap[i];
             MinHeap[i] = MinHeap[parent(i)];
             MinHeap[parent(i)] = aux;
+
             i = parent(i);
 
         }
     }
 
-    Weight extract_min() //remove o elemento de menor chave
+    std::pair<Weight, Vertex> extract_min() //remove o elemento de menor chave
     {
         if (MinHeap.size() == 0)
         {
             throw std::runtime_error("Fila vazia");
         }
 
-        Weight min = MinHeap[0];
+        std::pair<Weight, Vertex> min = MinHeap[0];
         MinHeap[0] = MinHeap.back();
         MinHeap.pop_back(); //vai pro fim da fila pra ser removido
         
-        if (!MinHeap.empty()) // só heapify se ainda tem elementos
+        if (!MinHeap.empty()) 
             min_heapify(0);
 
         return min;
     }
+};
+
+class AlgorithmDijkstra
+{
+    private:
+        WeightedGraphAL g;
+        std::vector<uint> dist;
+        std::vector<int> pred;
+    
+    public:
+         AlgorithmDijkstra(WeightedGraphAL& graph) : 
+         g(graph) 
+
+        {
+            dist.resize(g.get_num_vertices());
+            pred.resize(g.get_num_vertices());
+        }
+
+        void initialize(Vertex s)
+
+        {
+            uint n = g.get_num_vertices();
+            for (Vertex u = 0; u < n; u++)
+            {
+                if (u == s)
+                {
+                    dist[u] = 0;
+                    pred[s] = -1;
+                }
+                else
+                {
+                    dist[u] = std::numeric_limits<uint>::max(); // considera primeiramente distancia infinita
+                    pred[u] = -1; 
+                }
+            }
+
+        }
+
+        void relax(Vertex u, Vertex v, Weight w)
+        {
+
+            if (dist[v] > dist[u] + w)
+            {
+                dist[v] = dist[u] + w;
+                pred[v] = u;
+            }
+
+        }
+
+        void Dijkstra(Vertex s)
+        {
+            initialize(s);
+            MinimumPriorityQueue mq;
+            uint n = g.get_num_vertices();
+
+            for (Vertex u = 0; u < n; u++)
+            {
+                mq.insert({dist[u], u});
+            }
+
+            while (!mq.empty())
+            {
+                auto [d, u] = mq.extract_min();
+
+                for (const auto& adj_vertice: g.get_adj(u))
+                {
+                    Vertex v = adj_vertice.first;
+                    Weight w = adj_vertice.second;
+                    if (dist[v] > dist[u] + w)
+                    {
+                        relax(u, v, w);
+                        mq.insert({dist[v], v});
+                    }
+
+                }
+            }
+
+        }
+
+        //funcoes para testes de depuracoes (retirar depois)
+
+        void print_distances() 
+        {
+            for (uint u = 0; u < g.get_num_vertices(); u++) 
+            {
+                std::cout << "dist[" << u << "] = ";
+                if (dist[u] == std::numeric_limits<uint>::max())
+                    std::cout << "INF\n";
+                else
+                    std::cout << dist[u] << "\n";
+            }
+        }
+
+        const std::vector<uint>& getDistances() const 
+        {
+        return dist;
+        }
 };
 
 
@@ -230,13 +327,6 @@ private:
         }
     }
 
-    Vertex position_to_vertice(std::string position)
-    {
-        int initial_row = position[0] - 'a';
-        int initial_line = position[1] - '1';
-
-        return initial_line * N + initial_row;
-    }
 
 public:
     ArmiesAttack(int N) : g(N*N), N(N)
@@ -244,68 +334,62 @@ public:
         armies_paths(g, N);
     }
 
-    void print_graph() const
+    void print_graph() const //funcao pra teste de depuracao 
     {
         g.print_adjacency_list(g);
     }
 
+    WeightedGraphAL getGraph() const //funcao pra teste de depuracao 
+    {
+        return g;
+    }
+
+     Vertex position_to_vertice(std::string position)
+    {
+        int initial_row = position[0] - 'a';
+        int initial_line = position[1] - '1';
+
+        return initial_line * N + initial_row;
+    }
+
 };
 
-// int main()
-// {
-//     int N;
-//     std:: cin >> N;
-//     ArmiesAttack at(N);
-//     //at.print_graph();
-    
-//     return 0;
-// }
-
-
-
 int main() {
-    MinimumPriorityQueue mpq;
 
-    // Teste 1: Inserções
-    std::cout << "Inserindo elementos:\n";
-    mpq.insert(5);
-    mpq.insert(3);
-    mpq.insert(8);
-    mpq.insert(1);
-    mpq.insert(6);
-    mpq.insert(10);
-    mpq.insert(0);
-    mpq.insert(11);
-    mpq.insert(7);
-    mpq.insert(8);
-    mpq.insert(0);
-    mpq.insert(19);
+    //testes do AlgorithmDijkstra (aparentemente coerente com os testes)
 
-    // Mostrar conteúdo interno do heap
-    std::cout << "Heap interno apos insercoes: ";
-    for (auto x : mpq.getHeap()) {
-        std::cout << x << " ";
-    }
-    std::cout << "\n";
+    // int N;
+    // std::cout << "Digite o tamanho do tabuleiro NxN (8 a 15): ";
+    // std::cin >> N;
 
-    // Teste 2: Extração do mínimo
-    std::cout << "Extraindo min: " << mpq.extract_min() << "\n";
-    std::cout << "Heap apos extract_min: ";
-    for (auto x : mpq.getHeap()) {
-        std::cout << x << " ";
-    }
-    std::cout << "\n";
+    // ArmiesAttack battle(N);
+    // WeightedGraphAL g_battle = battle.getGraph();
 
-    // Teste 3: Várias extrações até esvaziar
-    std::cout << "Extraindo todos:\n";
-    while (true) {
-        try {
-            std::cout << mpq.extract_min() << " ";
-        } catch (std::runtime_error& e) {
-            std::cout << "\n[Fila vazia]\n";
-            break;
-        }
-    }
+    // std::string army_color, army_pos;
+    // std::cout << "Digite a cor do exército: ";
+    // std::cin >> army_color;
+    // std::cout << "Digite a posição inicial do exército (ex: b8): ";
+    // std::cin >> army_pos;
+
+    // Vertex start = battle.position_to_vertice(army_pos);
+
+    // std::string castle_pos;
+    // std::cout << "Digite a posição do castelo de Hunnus: ";
+    // std::cin >> castle_pos;
+    // Vertex castle = battle.position_to_vertice(castle_pos);
+
+    // Algorithm_Dijkstra dijkstra(g_battle);
+    // dijkstra.Dijkstra(start);
+
+    // const auto& dist = dijkstra.getDistances(); // precisa do getter em Algorithm_Dijkstra
+
+    // std::cout << "\nExército " << army_color 
+    //           << " até o castelo " << castle_pos << ": ";
+
+    // if (dist[castle] == std::numeric_limits<uint>::max())
+    //     std::cout << "INACESSÍVEL\n";
+    // else
+    //     std::cout << "distância mínima = " << dist[castle] << "\n";
 
     return 0;
 }
