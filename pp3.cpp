@@ -185,6 +185,7 @@ class MinimumPriorityQueue
 
         return min;
     }
+
 };
 
 class AlgorithmDijkstra
@@ -263,6 +264,34 @@ class AlgorithmDijkstra
             }
 
         }
+
+            
+    std::vector<Vertex> get_path(Vertex final) const
+    {
+        std::vector<Vertex> path_inverse;
+
+        if (dist[final] == std::numeric_limits<uint>::max())
+        {
+            return path_inverse; //quando o vertice final nao é alcancanvel
+        }
+
+        Vertex current_vertex = final; //comecamos o processo pelo vertice final
+
+        while (pred[current_vertex]!=-1) //a rota do caminho minimo pelo predecessores
+        {
+            path_inverse.push_back(current_vertex);
+            current_vertex = pred[current_vertex];
+        }
+
+        std::vector <Vertex> path;
+
+        for (int i = path.size() - 1; i >= 0; i--) //botar o caminho na ordem correnta
+        {
+            path.push_back(path_inverse[i]);
+        }
+
+        return path;
+    }
 
         //funcoes para testes de depuracoes (retirar depois)
 
@@ -351,6 +380,8 @@ public:
         a.inimigos = enemies;
         armies_list.push_back(a);
 
+         // falta adicionar a logica de introducao do exercito no grafo
+
     }
 
     const std::vector<Army>& get_armies() const
@@ -358,7 +389,7 @@ public:
         return armies_list;
     }
 
-    uint army_distance_to_castle(std::string army_position, std::string castle_position)
+    uint army_djk_distance_to_castle(std::string army_position, std::string castle_position)
     {
         Vertex a = position_to_vertice(army_position);
         Vertex c = position_to_vertice(castle_position);
@@ -388,8 +419,7 @@ public:
      Vertex position_to_vertice(std::string position)
     {
         int initial_row = position[0] - 'a';
-        int initial_line = std::stoi(position.substr(1)) - 1; // insere tudo depois da primeira letra ()
-
+        int initial_line = std::stoi(position.substr(1)) - 1;  //funcao que converte a substring da position a partir do index 1 para inteiro
         return initial_line * N + initial_row;
     }
 
@@ -472,7 +502,7 @@ int main()
         try
         {
 
-            uint distance = at.army_distance_to_castle(army.posicao, castle_position);
+            uint distance = at.army_djk_distance_to_castle(army.posicao, castle_position);
             std::cout << "Exercito " << army.cor << " (" << army.posicao << "): "
                       << "Distancia minima = " << distance << std::endl;
         }
