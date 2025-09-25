@@ -264,8 +264,7 @@ class AlgorithmDijkstra
             }
 
         }
-
-            
+      
     std::vector<Vertex> get_path(Vertex final) const
     {
         std::vector<Vertex> path_inverse;
@@ -277,7 +276,7 @@ class AlgorithmDijkstra
 
         Vertex current_vertex = final; //comecamos o processo pelo vertice final
 
-        while (pred[current_vertex]!=-1) //a rota do caminho minimo pelo predecessores
+        while (current_vertex != -1) //a rota do caminho minimo pelo predecessores
         {
             path_inverse.push_back(current_vertex);
             current_vertex = pred[current_vertex];
@@ -285,7 +284,7 @@ class AlgorithmDijkstra
 
         std::vector <Vertex> path;
 
-        for (int i = path.size() - 1; i >= 0; i--) //botar o caminho na ordem correnta
+        for (int i = path_inverse.size() - 1; i >= 0; i--) //botar o caminho na ordem correnta
         {
             path.push_back(path_inverse[i]);
         }
@@ -325,6 +324,7 @@ private:
         std::string cor;
         std::string posicao;
         std::vector<std::string> inimigos;
+        int rodadas;
     };
 
     std::vector<Army> armies_list;
@@ -416,11 +416,32 @@ public:
         return g;
     }
 
-     Vertex position_to_vertice(std::string position)
+     Vertex position_to_vertice(std::string position) const
     {
         int initial_row = position[0] - 'a';
         int initial_line = std::stoi(position.substr(1)) - 1;  //funcao que converte a substring da position a partir do index 1 para inteiro
         return initial_line * N + initial_row;
+    }
+
+    bool detect_enemies(Vertex next_vertex, const Army& current_army) const
+    {
+            for (const auto& enemy_color: current_army.inimigos)
+            {
+                for (const auto& other_army: armies_list)
+                {
+                if (other_army.cor == enemy_color)
+                {
+                    Vertex enemy_vertex = position_to_vertice(other_army.posicao);
+    
+                    if (next_vertex == enemy_vertex)
+                    {
+                        return true;
+                    }
+                }
+        
+                }
+            }
+             return false;
     }
 
 };
