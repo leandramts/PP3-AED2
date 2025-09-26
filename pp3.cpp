@@ -328,6 +328,7 @@ private:
     };
 
     std::vector<Army> armies_list;
+    std::string castle_position;
 
     void armies_paths(WeightedGraphAL& g, int N)
     { 
@@ -365,13 +366,6 @@ private:
         }
     }
 
-
-public:
-    ArmiesAttack(int N) : g(N*N), N(N)
-    {
-        armies_paths(g, N);
-    }
-
     void add_army(const std::string& color, const std::string& position, const std::vector<std::string>& enemies)
     {
         Army a;
@@ -379,9 +373,67 @@ public:
         a.posicao = position;
         a.inimigos = enemies;
         armies_list.push_back(a);
+    }
 
-         // falta adicionar a logica de introducao do exercito no grafo
+    std::string get_next_token(const std::string& str, int& pos) {
+        while (pos < str.length() && str[pos] == ' ') {
+            pos++;
+        }
 
+        int start = pos;
+        while (pos < str.length() && str[pos] != ' ') {
+            pos++;
+        }
+
+        if (start < str.length()) {
+            return str.substr(start, pos - start); // Retorna a sub-string que eh a palavra
+        }
+        return ""; // Retorna string vazia se nao houver mais palavras
+    }
+
+public:
+    ArmiesAttack(int N) : g(N*N), N(N)
+    {
+        armies_paths(g, N);
+    }
+
+    void input_data()
+    {
+        int num_royal_armies;
+        std::cin >> num_royal_armies;
+        std::cin.ignore();
+
+        for (int i = 0; i < num_royal_armies; ++i)
+        {
+            std::string line;
+            std::getline(std::cin, line);
+            int pos = 0;
+
+            std::string color = get_next_token(line, pos);
+            std::string position = get_next_token(line, pos);
+
+            std::vector<std::string> enemies;
+            std::string enemy;
+            while ((enemy = get_next_token(line, pos)) != "")
+            {
+                enemies.push_back(enemy);
+            }
+            
+            add_army(color, position, enemies);
+        }
+
+        std::cin >> castle_position;
+
+        int num_tormentas;
+        std::cin >> num_tormentas;
+
+        std::vector<std::string> tormenta_positions;
+        for (int i = 0; i < num_tormentas; ++i)
+        {
+            std::string tormenta_pos;
+            std::cin >> tormenta_pos;
+            tormenta_positions.push_back(tormenta_pos);
+        }
     }
 
     const std::vector<Army>& get_armies() const
@@ -444,75 +496,19 @@ public:
              return false;
     }
 
+    std::string get_castle_position() const
+    {
+        return castle_position;
+    }
 };
-
-std::string get_next_token(const std::string& str, int& pos) {
-    while (pos < str.length() && str[pos] == ' ') {
-        pos++;
-    }
-
-    int start = pos;
-    while (pos < str.length() && str[pos] != ' ') {
-        pos++;
-    }
-
-    if (start < str.length()) {
-        return str.substr(start, pos - start); // Retorna a sub-string que eh a palavra
-    }
-    return ""; // Retorna string vazia se nao houver mais palavras
-}
 
 int main()
 {
     int N;
     std:: cin >> N;
     ArmiesAttack at(N);
+    at.input_data();
    // at.print_graph();
-    
-    int num_royal_armies;
-    std::cin >> num_royal_armies;
-    std::cin.ignore();
-
-    for (int i = 0; i < num_royal_armies; ++i)
-    {
-        std::string line;
-        std::getline(std::cin, line);
-        int pos = 0;
-
-        std::string color = get_next_token(line, pos);
-        std::string position = get_next_token(line, pos);
-
-        std::vector<std::string> enemies;
-        std::string enemy;
-        while ((enemy = get_next_token(line, pos)) != "")
-        {
-            enemies.push_back(enemy);
-        }
-        
-        at.add_army(color, position, enemies);
-
-        std::cout << "Inimigos:";
-        for (auto &e : enemies)
-        {
-            std::cout << " " << e;
-        }
-        std::cout << "\n";
-        
-    }
-
-    std::string castle_position;
-    std::cin >> castle_position;
-
-    int num_tormentas;
-    std::cin >> num_tormentas;
-
-    std::vector<std::string> tormenta_positions;
-    for (int i = 0; i < num_tormentas; ++i)
-    {
-        std::string tormenta_pos;
-        std::cin >> tormenta_pos;
-        tormenta_positions.push_back(tormenta_pos);
-    }
     
     //testes de depuracao 
     const auto& all_armies = at.get_armies();
@@ -523,7 +519,7 @@ int main()
         try
         {
 
-            uint distance = at.army_djk_distance_to_castle(army.posicao, castle_position);
+            uint distance = at.army_djk_distance_to_castle(army.posicao, at.get_castle_position());
             std::cout << "Exercito " << army.cor << " (" << army.posicao << "): "
                       << "Distancia minima = " << distance << std::endl;
         }
