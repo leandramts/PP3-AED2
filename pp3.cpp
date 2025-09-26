@@ -325,6 +325,8 @@ private:
         std::string posicao;
         std::vector<std::string> inimigos;
         int rodadas;
+        std::vector<Vertex> caminho;
+        int caminho_index = 0;
     };
 
     std::vector<Army> armies_list;
@@ -434,16 +436,32 @@ public:
             std::cin >> tormenta_pos;
             tormenta_positions.push_back(tormenta_pos);
         }
+
+        //calculo do caminho de cada exercito
+        for (auto& army : armies_list) 
+        {
+            Vertex a = position_to_vertice(army.posicao);
+            Vertex c = position_to_vertice(castle_position);
+
+            AlgorithmDijkstra ad(g);
+            ad.Dijkstra(a);
+
+            army.caminho = ad.get_path(c);
+            army.caminho_index = 0;
+        }
+        
+
+        
     }
 
-    const std::vector<Army>& get_armies() const
+    std::vector<Army>& get_armies() 
     {
         return armies_list;
     }
 
-    uint army_djk_distance_to_castle(std::string army_position, std::string castle_position)
+    uint army_djk_distance_to_castle(const Army& army)
     {
-        Vertex a = position_to_vertice(army_position);
+        Vertex a = position_to_vertice(army.posicao);
         Vertex c = position_to_vertice(castle_position);
         AlgorithmDijkstra ad(g);
         ad.Dijkstra(a); //aplica o algoritmo de Dijkstra com o vertice do exercito sendo a origem
@@ -455,17 +473,18 @@ public:
             throw std::runtime_error("Nao tem caminho ate castelo");
         }
 
-        return min_dist; //retorna a distancia minima segundo o algoritmo ate o castelo
-    }
-  
-    void print_graph() const //funcao pra teste de depuracao 
-    {
-        g.print_adjacency_list(g);
+        return min_dist; //retorna a distancia minima total segundo o algoritmo ate o castelo
     }
 
-    const WeightedGraphAL& getGraph() const //funcao pra teste de depuracao 
+    std::vector<Vertex> get_army_path_to_castle(const Army& army) 
     {
-        return g;
+    Vertex a = position_to_vertice(army.posicao);
+    Vertex c = position_to_vertice(castle_position);
+
+    AlgorithmDijkstra ad(g);
+    ad.Dijkstra(a);
+
+    return ad.get_path(c); // retorna o vetor de vertice ate o castelo
     }
 
      Vertex position_to_vertice(std::string position) const
@@ -475,8 +494,25 @@ public:
         return initial_line * N + initial_row;
     }
 
-    bool detect_enemies(Vertex next_vertex, const Army& current_army) const
+    std::string vertice_to_position(Vertex v) const 
     {
+        int row = v % N;
+        int line = v / N;
+        char col_letter = 'a' + row;
+        return std::string(1, col_letter) + std::to_string(line + 1);
+    }
+
+    Vertex get_next_vertex(const Army& army) const
+    {
+    if (army.caminho_index + 1 < (int)army.caminho.size())
+        return army.caminho[army.caminho_index + 1];
+    else
+        return army.caminho[army.caminho_index]; // ja no destino
+    }
+
+    bool detect_enemies(Vertex next_vertex, const Army& current_army) 
+    {
+        
             for (const auto& enemy_color: current_army.inimigos)
             {
                 for (const auto& other_army: armies_list)
@@ -484,7 +520,6 @@ public:
                 if (other_army.cor == enemy_color)
                 {
                     Vertex enemy_vertex = position_to_vertice(other_army.posicao);
-    
                     if (next_vertex == enemy_vertex)
                     {
                         return true;
@@ -494,6 +529,27 @@ public:
                 }
             }
              return false;
+    }
+
+    bool move_army(Army &army)
+    {
+        if (army.caminho_index + 1 >= (int)army.caminho.size()) 
+        {
+            return false; // ja no castelo
+        }
+
+        Vertex next_vertex = army.caminho[army.caminho_index + 1];
+
+        if (detect_enemies(next_vertex, army)) 
+        {
+            return false; // inimigo bloqueando -> fica parado
+        }
+
+        // atualiza posicao
+        army.caminho_index++;
+        army.posicao = vertice_to_position(army.caminho[army.caminho_index]);
+        return true;
+    
     }
 
     std::string get_castle_position() const
@@ -509,27 +565,30 @@ int main()
     ArmiesAttack at(N);
     at.input_data();
    // at.print_graph();
-    
-    //testes de depuracao 
-    const auto& all_armies = at.get_armies();
-
-
-    for (const auto& army : all_armies) 
+    auto& all_armies = at.get_armies();
+    //testes de depuracao
+for (int rodada = 1; rodada <= 10; rodada++) 
+{
+    std::cout << "Rodada " << rodada << ":\n";
+    for (auto& army : all_armies) 
     {
-        try
-        {
+        Vertex next_vertex = at.get_next_vertex(army);
 
-            uint distance = at.army_djk_distance_to_castle(army.posicao, at.get_castle_position());
-            std::cout << "Exercito " << army.cor << " (" << army.posicao << "): "
-                      << "Distancia minima = " << distance << std::endl;
-        }
-        catch (const std::runtime_error& e)
+        if (at.detect_enemies(next_vertex, army)) 
         {
-            std::cout << "Exercito " << army.cor << " (" << army.posicao << "): "
-                      << "INACESSIVEL" << std::endl;
+            std::cout << "Exército " << army.cor 
+                      << " detectou inimigo no próximo vértice " 
+                      << at.vertice_to_position(next_vertex) << "\n";
         }
+
+        bool moved = at.move_army(army);
+        std::cout << "Exercito " << army.cor 
+                  << " agora esta em " << army.posicao
+                  << (moved ? " (andou)" : " (parado)") 
+                  << "\n";
     }
-
+    std::cout << "--------------------\n";
+}
 
 
 }
