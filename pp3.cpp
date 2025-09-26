@@ -271,7 +271,7 @@ class AlgorithmDijkstra
 
         if (dist[final] == std::numeric_limits<uint>::max())
         {
-            return path_inverse; //quando o vertice final nao é alcancanvel
+            return path_inverse; //quando o vertice final nao e alcancanvel
         }
 
         Vertex current_vertex = final; //comecamos o processo pelo vertice final
@@ -319,14 +319,17 @@ private:
     WeightedGraphAL g;
     int N;
 
+public:
     struct Army
     {
-        std::string cor;
-        std::string posicao;
-        std::vector<std::string> inimigos;
-        int rodadas;
+        std::string color;
+        std::string position;
+        std::vector<std::string> enymies;
+        std::vector<Vertex> path_to_castle;
+        int turns_to_castle;
     };
 
+private:
     std::vector<Army> armies_list;
     std::string castle_position;
 
@@ -369,9 +372,9 @@ private:
     void add_army(const std::string& color, const std::string& position, const std::vector<std::string>& enemies)
     {
         Army a;
-        a.cor = color;
-        a.posicao = position;
-        a.inimigos = enemies;
+        a.color = color;
+        a.position = position;
+        a.enymies = enemies;
         armies_list.push_back(a);
     }
 
@@ -436,18 +439,23 @@ public:
         }
     }
 
-    const std::vector<Army>& get_armies() const
+    std::vector<Army>& get_armies()
     {
         return armies_list;
     }
 
-    uint army_djk_distance_to_castle(std::string army_position, std::string castle_position)
+    uint army_djk_distance_to_castle(Army &army, std::string castle_position)
     {
-        Vertex a = position_to_vertice(army_position);
+        Vertex a = position_to_vertice(army.position);
         Vertex c = position_to_vertice(castle_position);
         AlgorithmDijkstra ad(g);
         ad.Dijkstra(a); //aplica o algoritmo de Dijkstra com o vertice do exercito sendo a origem
         const auto& array_dist = ad.getDistances(); //pega os vetores das distancias minimas
+
+        std::vector<Vertex> path = ad.get_path(c);
+        army.path_to_castle = path;
+        army.turns_to_castle = path.size() - 1;
+
         uint min_dist = array_dist[c];
 
         if (min_dist == std::numeric_limits<uint>::max())
@@ -457,7 +465,7 @@ public:
 
         return min_dist; //retorna a distancia minima segundo o algoritmo ate o castelo
     }
-  
+
     void print_graph() const //funcao pra teste de depuracao 
     {
         g.print_adjacency_list(g);
@@ -477,13 +485,13 @@ public:
 
     bool detect_enemies(Vertex next_vertex, const Army& current_army) const
     {
-            for (const auto& enemy_color: current_army.inimigos)
+            for (const auto& enemy_color: current_army.enymies)
             {
                 for (const auto& other_army: armies_list)
                 {
-                if (other_army.cor == enemy_color)
+                if (other_army.color == enemy_color)
                 {
-                    Vertex enemy_vertex = position_to_vertice(other_army.posicao);
+                    Vertex enemy_vertex = position_to_vertice(other_army.position);
     
                     if (next_vertex == enemy_vertex)
                     {
@@ -511,25 +519,33 @@ int main()
    // at.print_graph();
     
     //testes de depuracao 
-    const auto& all_armies = at.get_armies();
+    auto& all_armies = at.get_armies();
 
+    // // mostra todos os exercitos com suas distancias e turns_to_castle
+    // for (auto& army : all_armies) 
+    // {
+    //     uint distance = at.army_djk_distance_to_castle(army, at.get_castle_position());
+    //     std::cout << army.color << " " << army.turns_to_castle << " " << distance << " ";
+    // }
 
-    for (const auto& army : all_armies) 
+    // encontra o exercito com menor turns_to_castle
+    bool found = false;
+    ArmiesAttack::Army* best_army = nullptr;
+    uint best_distance = 0;
+
+    for (auto& army : all_armies) 
     {
-        try
-        {
-
-            uint distance = at.army_djk_distance_to_castle(army.posicao, at.get_castle_position());
-            std::cout << "Exercito " << army.cor << " (" << army.posicao << "): "
-                      << "Distancia minima = " << distance << std::endl;
-        }
-        catch (const std::runtime_error& e)
-        {
-            std::cout << "Exercito " << army.cor << " (" << army.posicao << "): "
-                      << "INACESSIVEL" << std::endl;
+        uint distance = at.army_djk_distance_to_castle(army, at.get_castle_position());
+        if (!found || army.turns_to_castle < best_army->turns_to_castle) {
+            best_army = &army;
+            best_distance = distance;
+            found = true;
         }
     }
 
+    if (best_army) {
+        std::cout << best_army->color << " " << best_army->turns_to_castle << " " << best_distance << " ";
+    }
 
-
+    return 0;
 }
