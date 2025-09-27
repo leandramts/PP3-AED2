@@ -426,6 +426,7 @@ public:
             ad.Dijkstra(a);
 
             army.path_to_castle = ad.get_path(c);
+            army.turns_to_castle = army.path_to_castle.size() - 1;
             army.path_index = 0;
         } 
         
@@ -508,14 +509,15 @@ public:
 
     bool detect_tormentas(const Army& current_army)
     {
-        Vertex current_v = position_to_vertice(current_army.position);
-        
-        for (const auto& t: tormenta_positions)
-        {
-            Vertex v_tormenta = position_to_vertice(t);
-            if (current_v == v_tormenta)
+        for (auto &v : current_army.path_to_castle)
+        {        
+            for (const auto& t: tormenta_positions)
             {
-                return true;
+                Vertex v_tormenta = position_to_vertice(t);
+                if (v == v_tormenta)
+                {
+                    return true;
+                }
             }
         }
 
@@ -567,66 +569,51 @@ int main()
     std:: cin >> N;
     ArmiesAttack at(N);
     at.input_data();
-   // at.print_graph();
-    
-    //testes de depuracao 
-    // auto& all_armies = at.get_armies();
-
-    // // mostra todos os exercitos com suas distancias e turns_to_castle
-    // for (auto& army : all_armies) 
-    // {
-    //     uint distance = at.army_djk_distance_to_castle(army);
-    //     std::cout << army.color << " " << army.turns_to_castle << " " << distance << " ";
-    // }
-
-    // // encontra o exercito com menor turns_to_castle
-    // bool found = false;
-    // ArmiesAttack::Army* best_army = nullptr;
-    // uint best_distance = 0;
-
-    // for (auto& army : all_armies) 
-    // {
-    //     uint distance = at.army_djk_distance_to_castle(army);
-    //     if (!found || army.turns_to_castle < best_army->turns_to_castle) {
-    //         best_army = &army;
-    //         best_distance = distance;
-    //         found = true;
-    //     }
-    // }
-
-    // if (best_army) {
-    //     std::cout << best_army->color << " " << best_army->turns_to_castle << " " << best_distance << " ";
-    // }
-
-    // return 0;
 
     auto& all_armies = at.get_armies();
 
-// Vamos testar por 5 rodadas
-for (int rodada = 1; rodada <= 5; rodada++) 
-{
-    std::cout << "Rodada " << rodada << ":\n";
-
     for (auto& army : all_armies) 
     {
-        Vertex next_vertex = at.get_next_vertex(army);
-        std::string next_pos = at.vertice_to_position(next_vertex);
-
-        bool enemy_detected = at.detect_enemies(army);
-        bool storm_detected = at.detect_tormentas(army);
-
-        std::cout << "Exercito " << army.color 
-                  << " esta em " << army.position
-                  << ", proximo vertice: " << next_pos
-                  << (enemy_detected ? " | INIMIGO A FRENTE" : "")
-                  << (storm_detected ? " | TORMENTA" : "")
-                  << "\n";
-
-        at.move_army(army); // atualiza posição para próxima rodada
+        if (at.detect_enemies(army) || at.detect_tormentas(army))
+        {
+            army.turns_to_castle++;
+        }
     }
 
-    std::cout << "--------------------\n";
-}
+    // encontra o menor numero de turns_to_castle
+    int min_turns = -1;
+    for (auto& army : all_armies) {
+        if (min_turns == -1 || army.turns_to_castle < min_turns) {
+            min_turns = army.turns_to_castle;
+        }
+    }
 
+    // cria um vetor com os armies que tem o menor numero de turns_to_castle
+    std::vector<ArmiesAttack::Army> best_armies;
+    for (auto& army : all_armies) {
+        if (army.turns_to_castle == min_turns) {
+            best_armies.push_back(army);
+        }
+    }
+
+    // ordenar em ordem alfabetica (Selection Sort)
+    for (int i = 0; i < best_armies.size(); ++i) {
+        int min_idx = i;
+        for (int j = i + 1; j < best_armies.size(); ++j) {
+            if (best_armies[j].color < best_armies[min_idx].color) {
+                min_idx = j;
+            }
+        }
+        if (min_idx != i) {
+            ArmiesAttack::Army temp = best_armies[i];
+            best_armies[i] = best_armies[min_idx];
+            best_armies[min_idx] = temp;
+        }
+    }
+
+    // imprime os melhores armies
+    for (auto& army : best_armies) {
+        std::cout << army.color << " " << army.turns_to_castle << " " << at.army_djk_distance_to_castle(army) << " ";
+    }
 
 }
