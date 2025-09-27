@@ -246,7 +246,7 @@ public:
 
         std::vector<Vertex> path;
 
-        for (int i = path_inverse.size() - 1; i >= 0; i--) // botar o caminho na ordem correta
+        for (int i = path_inverse.size() - 1; i >= 0; i--) // botar o caminho na ordem correnta
         {
             path.push_back(path_inverse[i]);
         }
@@ -262,19 +262,19 @@ public:
 
 class ArmiesAttack
 {
-private:
+public:
     struct Army
     {
         // dados de entrada
         std::string color;
         std::string position;
         std::vector<std::string> enemies;
+        std::vector<std::string> allies;
 
         // dados processados
         std::vector<Vertex> path_to_castle;
         uint turns_to_castle;
         uint min_distance_to_castle;
-        std::vector<std::string> allies;
     };
     uint N;            // tamanho do tabuleiro NxN
     WeightedGraphAL g; // grafo que representa o tabuleiro
@@ -378,17 +378,35 @@ private:
 
     void game_logic()
     {
-        // incrementa turns_to_castle se houver inimigos ou tormentas no caminho e não tiver aliança
+        int max_turns = 0;
         for (auto &army : armies_list)
         {
-            if (detect_enemies(army) || (detect_tormentas(army) && !detect_alliance(army)))
+            if ((int)army.path_to_castle.size() > max_turns)
+                max_turns = army.path_to_castle.size(); //qtd de turno maximo eh a quantidade de passos pra chegar ao castelo
+        }
+
+        // simula rodada a rodada
+        for (int round = 0; round < max_turns - 1; ++round)
+        {
+            for (auto &army : armies_list)
             {
-                army.turns_to_castle++;
+                // se o exercito ja chegou ao castelo, ignora
+                if (round >= (int)army.path_to_castle.size() - 1)
+                    continue;
+
+                // incrementa turns_to_castle se houver inimigos ou tormentas sem alianca, pois esta bloqueado uma rodada
+                if (detect_enemies(army, round) || (detect_tormentas(army, round) && !detect_alliance(army, round)))
+                {
+                    army.turns_to_castle++;
+                }
+
+                // atualiza a posicao do army
+                army.position = vertice_to_position(army.path_to_castle[round + 1]);
             }
         }
     }
 
-    void find_best_army()
+      void find_best_army()
     {
         // encontra o menor numero de turns_to_castle
         uint min_turns = armies_list[0].turns_to_castle;
@@ -435,7 +453,6 @@ private:
             std::cout << army.color << " " << army.turns_to_castle << " " << army.min_distance_to_castle << " ";
         }
     }
-
     // funcoes auxiliares
     void add_army(const std::string &color, const std::string &position, const std::vector<std::string> &enemies)
     {
@@ -446,13 +463,19 @@ private:
         armies_list.push_back(a);
     }
 
-    bool detect_enemies(const Army &current_army)
+    bool detect_enemies(const Army &current_army, int current_round)
     {
+        if (current_round + 1 >= (int)current_army.path_to_castle.size())
+            return false; // ja chegou ao castelo
+
+        Vertex next_vertex = current_army.path_to_castle[current_round + 1];
+        std:: string next_position = vertice_to_position(next_vertex);
+        
         for (auto &army : armies_list)
         {
             for (const auto &enemy_color : current_army.enemies)
             {
-                if (army.color == enemy_color && army.position == current_army.position)
+                if (army.color == enemy_color && army.position == next_position)
                 {
                     return true;
                 }
@@ -462,8 +485,11 @@ private:
         return false;
     }
 
-    bool detect_alliance(Army & current_army)
+    bool detect_alliance(Army & current_army, int current_round)
     {
+        if (current_round >= (int)current_army.path_to_castle.size())
+            return false; //ja chegou no castelo
+
         for (auto &other_army: armies_list)
         {
             if (&other_army == &current_army)
@@ -496,13 +522,14 @@ private:
 
     }
 
-    bool detect_tormentas(const Army &current_army)
+    bool detect_tormentas(const Army &current_army, int current_round)
     {
-        Vertex pos = position_to_vertice(current_army.position);
+        if (current_round >= (int)current_army.path_to_castle.size())
+                return false;
+
         for (auto it = tormenta_positions.begin(); it != tormenta_positions.end();)
         {
-            Vertex v_tormenta = position_to_vertice(*it); 
-            if (pos == v_tormenta)
+            if (position_to_vertice(*it) == position_to_vertice(current_army.position))
             {
                 it = tormenta_positions.erase(it); //remove a tormenta do tabuleiro
                 return true;
