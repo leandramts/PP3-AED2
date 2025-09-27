@@ -62,30 +62,6 @@ class WeightedGraphAL
         return num_vertices;
     }
 
-    uint get_num_edges() const
-    {
-        return num_edges;
-    }
-
-    void print_adjacency_list(const WeightedGraphAL& g) const
-    {
-        uint n = g.get_num_vertices();
-        uint e = g.get_num_edges();
-
-        std:: cout << "num_vertices: " << n << std::endl;
-        std:: cout << "num_edges: " << e << std::endl;
-
-        for (uint u = 0; u < n; u++)
-        {
-            std:: cout << u << ": ";
-            std:: list<VertexWeightPair> l = get_adj(u);
-            for(const auto& item: l)
-            {
-                std:: cout << "(" << item.first << ", " << item.second << "), ";
-            }
-            std:: cout <<std::endl;
-        }
-    }
 };
 
 class MinimumPriorityQueue
@@ -324,14 +300,18 @@ public:
     {
         std::string color;
         std::string position;
-        std::vector<std::string> enymies;
+        std::vector<std::string> enemies;
         std::vector<Vertex> path_to_castle;
         int turns_to_castle;
+        int path_index = 0;
+        int round_in_tormenta = 0;
+         std::vector<Army*> allies;
     };
 
 private:
     std::vector<Army> armies_list;
     std::string castle_position;
+    std::vector<std::string> tormenta_positions;
 
     void armies_paths(WeightedGraphAL& g, int N)
     { 
@@ -374,7 +354,7 @@ private:
         Army a;
         a.color = color;
         a.position = position;
-        a.enymies = enemies;
+        a.enemies = enemies;
         armies_list.push_back(a);
     }
 
@@ -430,7 +410,6 @@ public:
         int num_tormentas;
         std::cin >> num_tormentas;
 
-        std::vector<std::string> tormenta_positions;
         for (int i = 0; i < num_tormentas; ++i)
         {
             std::string tormenta_pos;
@@ -438,18 +417,17 @@ public:
             tormenta_positions.push_back(tormenta_pos);
         }
 
-        //calculo do caminho de cada exercito
         for (auto& army : armies_list) 
-        {
-            Vertex a = position_to_vertice(army.posicao);
+       {
+            Vertex a = position_to_vertice(army.position);
             Vertex c = position_to_vertice(castle_position);
 
             AlgorithmDijkstra ad(g);
             ad.Dijkstra(a);
 
-            army.caminho = ad.get_path(c);
-            army.caminho_index = 0;
-        }
+            army.path_to_castle = ad.get_path(c);
+            army.path_index = 0;
+        } 
         
 
         
@@ -460,7 +438,7 @@ public:
         return armies_list;
     }
 
-    uint army_djk_distance_to_castle(Army &army, std::string castle_position)
+    uint army_djk_distance_to_castle(Army &army)
     {
         Vertex a = position_to_vertice(army.position);
         Vertex c = position_to_vertice(castle_position);
@@ -482,16 +460,6 @@ public:
         return min_dist; //retorna a distancia minima total segundo o algoritmo ate o castelo
     }
 
-    void print_graph() const //funcao pra teste de depuracao 
-    {
-        g.print_adjacency_list(g);
-    }
-
-    const WeightedGraphAL& getGraph() const //funcao pra teste de depuracao 
-    {
-        return g;
-    }
-
      Vertex position_to_vertice(std::string position) const
     {
         int initial_row = position[0] - 'a';
@@ -509,15 +477,16 @@ public:
 
     Vertex get_next_vertex(const Army& army) const
     {
-    if (army.caminho_index + 1 < (int)army.caminho.size())
-        return army.caminho[army.caminho_index + 1];
+    if (army.path_index + 1 < (int)army.path_to_castle.size())
+        return army.path_to_castle[army.path_index + 1];
     else
-        return army.caminho[army.caminho_index]; // ja no destino
+        return army.path_to_castle[army.path_index]; // ja no destino
     }
 
-    bool detect_enemies(Vertex next_vertex, const Army& current_army) 
+    bool detect_enemies(const Army& current_army) 
     {
-            for (const auto& enemy_color: current_army.enymies)
+            Vertex next_vertex = get_next_vertex(current_army);
+            for (const auto& enemy_color: current_army.enemies)
             {
                 for (const auto& other_army: armies_list)
                 {
@@ -533,26 +502,55 @@ public:
         
                 }
             }
-             return false;
+
+            return false;
+    }
+
+    bool detect_tormentas(const Army& current_army)
+    {
+        Vertex current_v = position_to_vertice(current_army.position);
+        
+        for (const auto& t: tormenta_positions)
+        {
+            Vertex v_tormenta = position_to_vertice(t);
+            if (current_v == v_tormenta)
+            {
+                return true;
+            }
+        }
+
+        return false;
+
     }
 
     bool move_army(Army &army)
     {
-        if (army.caminho_index + 1 >= (int)army.caminho.size()) 
+        if (army.path_index + 1 >= (int)army.path_to_castle.size()) 
         {
             return false; // ja no castelo
         }
 
-        Vertex next_vertex = army.caminho[army.caminho_index + 1];
-
-        if (detect_enemies(next_vertex, army)) 
+        if (detect_enemies(army)) 
         {
             return false; // inimigo bloqueando -> fica parado
         }
 
+        if (detect_tormentas(army))
+        {
+            if (army.round_in_tormenta == 0)
+            {
+                army.round_in_tormenta = 1;
+                return false;
+            }
+            else
+            {
+                army.round_in_tormenta = 0;
+            }
+        }
+
         // atualiza posicao
-        army.caminho_index++;
-        army.posicao = vertice_to_position(army.caminho[army.caminho_index]);
+        army.path_index++;
+        army.position = vertice_to_position(army.path_to_castle[army.path_index]);
         return true;
     
     }
@@ -572,33 +570,63 @@ int main()
    // at.print_graph();
     
     //testes de depuracao 
-    auto& all_armies = at.get_armies();
+    // auto& all_armies = at.get_armies();
 
     // // mostra todos os exercitos com suas distancias e turns_to_castle
     // for (auto& army : all_armies) 
     // {
-    //     uint distance = at.army_djk_distance_to_castle(army, at.get_castle_position());
+    //     uint distance = at.army_djk_distance_to_castle(army);
     //     std::cout << army.color << " " << army.turns_to_castle << " " << distance << " ";
     // }
 
-    // encontra o exercito com menor turns_to_castle
-    bool found = false;
-    ArmiesAttack::Army* best_army = nullptr;
-    uint best_distance = 0;
+    // // encontra o exercito com menor turns_to_castle
+    // bool found = false;
+    // ArmiesAttack::Army* best_army = nullptr;
+    // uint best_distance = 0;
+
+    // for (auto& army : all_armies) 
+    // {
+    //     uint distance = at.army_djk_distance_to_castle(army);
+    //     if (!found || army.turns_to_castle < best_army->turns_to_castle) {
+    //         best_army = &army;
+    //         best_distance = distance;
+    //         found = true;
+    //     }
+    // }
+
+    // if (best_army) {
+    //     std::cout << best_army->color << " " << best_army->turns_to_castle << " " << best_distance << " ";
+    // }
+
+    // return 0;
+
+    auto& all_armies = at.get_armies();
+
+// Vamos testar por 5 rodadas
+for (int rodada = 1; rodada <= 5; rodada++) 
+{
+    std::cout << "Rodada " << rodada << ":\n";
 
     for (auto& army : all_armies) 
     {
-        uint distance = at.army_djk_distance_to_castle(army, at.get_castle_position());
-        if (!found || army.turns_to_castle < best_army->turns_to_castle) {
-            best_army = &army;
-            best_distance = distance;
-            found = true;
-        }
+        Vertex next_vertex = at.get_next_vertex(army);
+        std::string next_pos = at.vertice_to_position(next_vertex);
+
+        bool enemy_detected = at.detect_enemies(army);
+        bool storm_detected = at.detect_tormentas(army);
+
+        std::cout << "Exercito " << army.color 
+                  << " esta em " << army.position
+                  << ", proximo vertice: " << next_pos
+                  << (enemy_detected ? " | INIMIGO A FRENTE" : "")
+                  << (storm_detected ? " | TORMENTA" : "")
+                  << "\n";
+
+        at.move_army(army); // atualiza posição para próxima rodada
     }
 
-    if (best_army) {
-        std::cout << best_army->color << " " << best_army->turns_to_castle << " " << best_distance << " ";
-    }
+    std::cout << "--------------------\n";
+}
 
-    return 0;
+
 }
