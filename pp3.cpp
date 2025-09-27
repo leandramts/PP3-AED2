@@ -246,7 +246,7 @@ public:
 
         std::vector<Vertex> path;
 
-        for (int i = path_inverse.size() - 1; i >= 0; i--) // botar o caminho na ordem correnta
+        for (int i = path_inverse.size() - 1; i >= 0; i--) // botar o caminho na ordem correta
         {
             path.push_back(path_inverse[i]);
         }
@@ -274,6 +274,7 @@ private:
         std::vector<Vertex> path_to_castle;
         uint turns_to_castle;
         uint min_distance_to_castle;
+        std::vector<std::string> allies;
     };
     uint N;            // tamanho do tabuleiro NxN
     WeightedGraphAL g; // grafo que representa o tabuleiro
@@ -377,10 +378,10 @@ private:
 
     void game_logic()
     {
-        // incrementa turns_to_castle se houver inimigos ou tormentas no caminho
+        // incrementa turns_to_castle se houver inimigos ou tormentas no caminho e não tiver aliança
         for (auto &army : armies_list)
         {
-            if (detect_enemies(army) || detect_tormentas(army))
+            if (detect_enemies(army) || (detect_tormentas(army) && !detect_alliance(army)))
             {
                 army.turns_to_castle++;
             }
@@ -461,19 +462,57 @@ private:
         return false;
     }
 
-    bool detect_tormentas(const Army &current_army)
+    bool detect_alliance(Army & current_army)
     {
-        for (auto &v : current_army.path_to_castle)
+        for (auto &other_army: armies_list)
         {
-            for (const auto &t : tormenta_positions)
+            if (&other_army == &current_army)
+                continue;
+            
+            bool is_enemy = false;
+            for (const auto &e_army: current_army.enemies)
             {
-                Vertex v_tormenta = position_to_vertice(t);
-                if (v == v_tormenta)
+                if(other_army.color == e_army)
                 {
-                    return true;
+                    is_enemy = true;
+                    break;
                 }
             }
+
+            if (is_enemy)
+            {
+                continue;
+            }
+
+            if (other_army.position == current_army.position)
+            {
+                current_army.allies.push_back(other_army.color);
+                other_army.allies.push_back(current_army.color);
+                return true;
+            }
         }
+
+        return false;
+
+    }
+
+    bool detect_tormentas(const Army &current_army)
+    {
+        Vertex pos = position_to_vertice(current_army.position);
+        for (auto it = tormenta_positions.begin(); it != tormenta_positions.end();)
+        {
+            Vertex v_tormenta = position_to_vertice(*it); 
+            if (pos == v_tormenta)
+            {
+                it = tormenta_positions.erase(it); //remove a tormenta do tabuleiro
+                return true;
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
         return false;
     }
 
@@ -533,4 +572,5 @@ int main()
     std::cin >> N;
     ArmiesAttack at(N);
     at.run();
+
 }
