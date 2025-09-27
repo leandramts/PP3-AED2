@@ -262,19 +262,19 @@ public:
 
 class ArmiesAttack
 {
-public:
+private:
     struct Army
     {
         // dados de entrada
         std::string color;
         std::string position;
         std::vector<std::string> enemies;
-        std::vector<std::string> allies;
 
         // dados processados
         std::vector<Vertex> path_to_castle;
         uint turns_to_castle;
         uint min_distance_to_castle;
+        std::vector<std::string> allies;
     };
     uint N;            // tamanho do tabuleiro NxN
     WeightedGraphAL g; // grafo que representa o tabuleiro
@@ -475,7 +475,7 @@ public:
         {
             for (const auto &enemy_color : current_army.enemies)
             {
-                if (army.color == enemy_color && army.position == next_position)
+                if (army.color == enemy_color && army.position == next_position) //verifica se o proximo movimento tem um inimigo
                 {
                     return true;
                 }
@@ -510,7 +510,7 @@ public:
                 continue;
             }
 
-            if (other_army.position == current_army.position)
+            if (other_army.position == current_army.position) //alia-se a exercito nao inimigo quando estao na mesma posicao
             {
                 current_army.allies.push_back(other_army.color);
                 other_army.allies.push_back(current_army.color);
@@ -529,7 +529,7 @@ public:
 
         for (auto it = tormenta_positions.begin(); it != tormenta_positions.end();)
         {
-            if (position_to_vertice(*it) == position_to_vertice(current_army.position))
+            if (position_to_vertice(*it) == position_to_vertice(current_army.position)) 
             {
                 it = tormenta_positions.erase(it); //remove a tormenta do tabuleiro
                 return true;
